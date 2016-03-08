@@ -16,4 +16,3 @@
 
 > ETC_DECam.py
 
-README.md
