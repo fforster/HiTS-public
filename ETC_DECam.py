@@ -319,7 +319,7 @@ class ETC_DECam(object):
     
 if __name__ == "__main__":
 
-    print "\nInitializing ETC_DECam object..."
+    print "\nInitializing ETC_DECam object with seeing_r=of 0.75\", version 6..."
     ETC = ETC_DECam(seeing_r_arcsec=0.75, vETC=6)
 
     print "\nTesting FWHM for an airmass vector..."
@@ -357,5 +357,10 @@ if __name__ == "__main__":
         print "OK"
 
     print "\nTesting findmag for input SNR of 5..."
-    print "mags at airmasses of 1.0 and 1.6", ETC.findmag(band='u', SNRin=5, exptime=173, airmass=1.0, skymode='mag', skymag=22.0), ETC.findmag(band='u', SNRin=5, exptime=173, airmass=1.6, skymode='mag', skymag=22.0)
+    print "u band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='u', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+    print "g band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='g', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+    print "r band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='r', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+    print "i band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='i', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+    print "z band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='z', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+    print "Y band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='Y', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
 
