@@ -1,6 +1,6 @@
 import numpy as np
 
-# CC F. Forster, modified public DECam exposure time calculator
+# CC F. Forster, J. Martinez, J.C. Maureira, modified public DECam exposure time calculator
 # -------------------------------------------------------------
 # modified to include the effect of airmass and able to use empirical FWHM and/or sky brightness
 # ETC_DECam object constructor: requires seeing in r band in arcsec (kw. seeing_r_arcsec, default if 0.75) and ETC version (5 or 6 accepted, default is 6, kw. vETC), it can also run in test LSST or HSC modes
