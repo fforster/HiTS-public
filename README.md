@@ -25,7 +25,7 @@ Options: help, test, seeing= [arcsec], ETC=, skymode=, band=, exptime= [sec], ma
 Code contains special class to call the ETC from inside python code, but can also be called from the command line.
 
 Example inside python code:
-
+```
    # import module
    
    from ETC_DECam import *
@@ -45,7 +45,7 @@ Example inside python code:
    print ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='mag', skymag=22)
    
    print ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='mag', skymag=22.0)
-
+```
 
 Command line has two basic modes: giving an input magnitude to get an input signal to noise ratio (SNR) and viceversa, i.e. getting a limiting magnitude given a SNR.
 
@@ -60,7 +60,7 @@ mag-FWHM: sky is given in mag/arcsec2 and FWHM is manually input in arcsec (airm
 ADU-FWHM: sky is given in ADU/pixeland FWHM is manually input in arcsec (airmass is also needed to compute extra extinction and atmosphere emission)
 
 Command line examples:
-
+```
    python ETC_DECam.py --skymode mag --mag 20 --band g --exptime 173 --airmass 1.0 --skymag 22 
    SNR(mag=20.000000): 248.947527
    
@@ -84,3 +84,4 @@ Command line examples:
    
    python ETC_DECam.py --skymode ADU-FWHM --SNR 5 --band g --exptime 173 --airmass 1.0 --skyADU 200 --fwhm 2
    Magnitude(SNR=5.000000): 24.216212
+```
