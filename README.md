@@ -20,6 +20,7 @@ CC F. Forster, J. Martinez, J.C. Maureira, modified DECam ETC.
 ---------------------------------------------------
 
 Please report any problems to francisco.forster@gmail.com
+
 Options: help, test, seeing= [arcsec], ETC=, skymode=, band=, exptime= [sec], mag=, airmass=, fwhm= [arcsec], skymag= [mag/arcsec2], skyADU= [ADU/pix], SNR=
 
 Code contains special class to call the ETC from inside python code, but can also be called from the command line.
@@ -39,6 +40,18 @@ Example inside python code:
    # Testing SNR and findmag with all skymodes with a 20 mag source, 173 sec exposure time in g band, airmass of 1.0...
    print ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='mag', skymag=22)
    print ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='mag', skymag=22.0)
+   
+   print ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='mag', skymag=22)
+	print ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='mag', skymag=22.0)
+   
+   print ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='mag-FWHM', skymag=22, fwhm=1.0)
+   print ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='mag-FWHM', skymag=22, fwhm=1.0)
+   
+   print ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='ADU', skyADU=120)
+   print ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='ADU', skyADU=120)
+
+   print ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='ADU-FWHM', skyADU=120, fwhm=1.0)
+   print ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='ADU-FWHM', skyADU=120, fwhm=1.0)
 ```
 
 Command line has two basic modes: giving an input magnitude to get an input signal to noise ratio (SNR) and viceversa, i.e. getting a limiting magnitude given a SNR.
