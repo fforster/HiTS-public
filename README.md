@@ -27,23 +27,17 @@ Code contains special class to call the ETC from inside python code, but can als
 Example inside python code:
 ```
    # import module
-   
    from ETC_DECam import *
 
    # Initializing ETC_DECam object with seeing_r=of 0.75", version 6...
-   
    ETC = ETC_DECam(seeing_r_arcsec=0.75, vETC=6)
 
    # Testing FWHM for an airmass vector...
-   
    print "   u band, airmass between 1.0 and 1.6", ETC.FWHM(band='u', airmass=np.linspace(1.0, 1.6, 10))
-   
    print "   g band, airmass between 1.2 and 1.9", ETC.FWHM(band='g', airmass=np.linspace(1.2, 1.9, 10))
 
    # Testing SNR and findmag with all skymodes with a 20 mag source, 173 sec exposure time in g band, airmass of 1.0...
-   
    print ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='mag', skymag=22)
-   
    print ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='mag', skymag=22.0)
 ```
 
