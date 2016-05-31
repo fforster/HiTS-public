@@ -41,7 +41,7 @@ class sky(object):
 
     def skymags(self):
         
-        moonphases = map(self.moonphase, MJDs)
+        moonphases = map(self.moonphase, self.MJDs)
         skymags = map(lambda x: self.magskyf(x), moonphases)
         return moonphases, skymags
 
