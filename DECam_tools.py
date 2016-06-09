@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.special import erf
 
 class DECam_tools(object):
 
@@ -46,4 +47,19 @@ class DECam_tools(object):
         mag_1[mfluxp] = np.array(-2.5 * np.log10(fluxp[mfluxp]) + 2.5 * np.log10(exptime) - self.azero[filtername][self.CCDn[CCD] - 1] - self.kzero[filtername][self.CCDn[CCD] - 1] * airmass)
         mag_2[mfluxm] = np.array(-2.5 * np.log10(fluxm[mfluxm]) + 2.5 * np.log10(exptime) - self.azero[filtername][self.CCDn[CCD] - 1] - self.kzero[filtername][self.CCDn[CCD] - 1] * airmass)
         return (mag, mag - mag_1, mag_2 - mag)
+
+
+    # function to convert fluxes into magnitudes for typical CCD
+    def ADU2mag_avg(self, flux, exptime, airmass, filtername):
+        
+        mag = np.array(-2.5 * np.log10(flux) + 2.5 * np.log10(exptime) - np.average(self.azero[filtername]) - np.average(self.kzero[filtername]) * airmass)
+        return mag
+
+    # analytic form for efficiency vs ADU relation
+    def efficiency_ADU(self, xs, offset, delta):
+        return (1. + erf((log10(xs) - offset) / delta)) / 2.
+        
+    # analytic form for efficiency vs mag relation
+    def efficiency_mag(self, xs, offset, delta):
+        return (1. + erf(-(xs - offset) / delta)) / 2.
 
