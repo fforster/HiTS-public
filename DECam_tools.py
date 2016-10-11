@@ -55,6 +55,13 @@ class DECam_tools(object):
         mag = np.array(-2.5 * np.log10(flux) + 2.5 * np.log10(exptime) - np.average(self.azero[filtername]) - np.average(self.kzero[filtername]) * airmass)
         return mag
 
+
+    # function to convert fluxes into magnitudes for typical CCD
+    def mag2ADU_avg(self, mag, exptime, airmass, filtername):
+        
+        ADU = exptime * 10**((np.average(self.azero[filtername]) + np.average(self.kzero[filtername]) * airmass + mag) / -2.5)
+        return ADU
+
     # analytic form for efficiency vs ADU relation
     def efficiency_ADU(self, xs, offset, delta):
         return (1. + erf((log10(xs) - offset) / delta)) / 2.

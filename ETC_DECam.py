@@ -27,7 +27,7 @@ class ETC_DECam(object):
         if 'vETC' in kwargs.keys():
             self.vETC = kwargs['vETC']
         else:
-            self.vETC = 6 # recommended version
+            self.vETC = 7 # recommended version
 
         # test parameters (default to false)
         self.testLSST = False
@@ -98,6 +98,10 @@ class ETC_DECam(object):
         exptime = kwargs['exptime']
         airmass = kwargs['airmass']
         skymode = kwargs['skymode']
+        if "nread" in kwargs.keys():
+            nread = kwargs['nread']
+        else:
+            nread = 1
         if (skymode == 'mag' or skymode == 'mag-FWHM') and not 'skymag' in kwargs.keys():
             raise ValueError("Missing sky magnitude (skymag)")
         elif (skymode == 'ADU' or skymode == 'ADU-FWHM')  and not 'skyADU' in kwargs.keys():
@@ -173,8 +177,30 @@ class ETC_DECam(object):
         zero_phot = zero_photrate * area * exptime  # photons
     
         # primary mirror reflectivity
-        if self.vETC == 6:
+        if self.vETC == 7:
             aperture_eff = 2.04 
+            RON_pix = 7. # readout noise per pixel, electrons
+            if band == 'u':
+                CCD_eff = 0.25
+                primary_refl = 0.89
+            elif band == 'g':
+                CCD_eff = 0.59
+                primary_refl = 0.89
+            elif band == 'r':
+                CCD_eff = 0.75
+                primary_refl = 0.88
+            elif band == 'i':
+                CCD_eff = 0.85
+                primary_refl = 0.87
+            elif band == 'z':
+                CCD_eff = 0.85
+                primary_refl = 0.88
+            elif band == 'Y':
+                CCD_eff = 0.5
+                primary_refl = 0.9
+        elif self.vETC == 6:
+            aperture_eff = 2.04 
+            RON_pix = 10. # readout noise per pixel, electrons
             if band == 'u':
                 CCD_eff = 0.25
                 primary_refl = 0.89
@@ -195,6 +221,7 @@ class ETC_DECam(object):
                 primary_refl = 0.9
         elif self.vETC == 5:
             aperture_eff = 1.34
+            RON_pix = 10. # readout noise per pixel, electrons
             if band == 'u':
                 CCD_eff = 0.25
                 primary_refl = 0.85
@@ -270,7 +297,7 @@ class ETC_DECam(object):
         source_electrons = zero_signal * 10**(mag / -2.5) # electrons from a source of the given magnitude
     
         # DECam pixel scale
-        DECam_pix = 0.263 # arcsec  0.2637 in the centre, 0.2626 at the edges
+        DECam_pix = 0.264 # arcsec  0.2637 in the centre, 0.2626 at the edges
         if self.testLSST:
             DECam_pix = 0.2 # arcsec
         if self.testHSC:
@@ -287,14 +314,14 @@ class ETC_DECam(object):
         else:
             raise ValueError("SNR: skymode %s not recognized" % skymode)
     
-        # readout noise per pixel
-        RON_pix = 10. # electrons
-
         # readout noise per aperture
-        RON_aper = RON_pix * np.sqrt(aperture / DECam_pix**2) # electrons
-    
+        if self.vETC == 5 or self.vETC == 6:
+            RON_aper = RON_pix * np.sqrt(aperture / DECam_pix**2) # electrons^2/pixel^2
+        elif self.vETC == 7:
+            RON_aper = RON_pix**2 * (aperture / DECam_pix**2) # electrons^2/pixel^2
+            
         # surce signal to noise ratio
-        SNRout = source_electrons / np.sqrt(source_electrons + sky_electrons + RON_aper)
+        SNRout = source_electrons / np.sqrt(source_electrons + sky_electrons + nread * RON_aper)
     
         return SNRout
     
@@ -303,13 +330,13 @@ class ETC_DECam(object):
         
         magsarray = np.linspace(15., 27., 100000)
         if kwargs['skymode'] == 'mag':
-            SNRs = self.SNR(band=kwargs['band'], mag=magsarray, exptime=kwargs['exptime'], airmass=kwargs['airmass'], skymode=kwargs['skymode'], skymag=kwargs['skymag'])
+            SNRs = self.SNR(band=kwargs['band'], mag=magsarray, exptime=kwargs['exptime'], nread=kwargs['nread'], airmass=kwargs['airmass'], skymode=kwargs['skymode'], skymag=kwargs['skymag'])
         elif kwargs['skymode'] == 'mag-FWHM':
-            SNRs = self.SNR(band=kwargs['band'], mag=magsarray, exptime=kwargs['exptime'], airmass=kwargs['airmass'], skymode=kwargs['skymode'], skymag=kwargs['skymag'], fwhm=kwargs['fwhm'])
+            SNRs = self.SNR(band=kwargs['band'], mag=magsarray, exptime=kwargs['exptime'], nread=kwargs['nread'], airmass=kwargs['airmass'], skymode=kwargs['skymode'], skymag=kwargs['skymag'], fwhm=kwargs['fwhm'])
         elif kwargs['skymode'] == 'ADU':
-            SNRs = self.SNR(band=kwargs['band'], mag=magsarray, exptime=kwargs['exptime'], airmass=kwargs['airmass'], skymode=kwargs['skymode'], skyADU=kwargs['skyADU'])
+            SNRs = self.SNR(band=kwargs['band'], mag=magsarray, exptime=kwargs['exptime'], nread=kwargs['nread'], airmass=kwargs['airmass'], skymode=kwargs['skymode'], skyADU=kwargs['skyADU'])
         elif kwargs['skymode'] == 'ADU-FWHM':
-            SNRs = self.SNR(band=kwargs['band'], mag=magsarray, exptime=kwargs['exptime'], airmass=kwargs['airmass'], skymode=kwargs['skymode'], skyADU=kwargs['skyADU'], fwhm=kwargs['fwhm'])
+            SNRs = self.SNR(band=kwargs['band'], mag=magsarray, exptime=kwargs['exptime'], nread=kwargs['nread'], airmass=kwargs['airmass'], skymode=kwargs['skymode'], skyADU=kwargs['skyADU'], fwhm=kwargs['fwhm'])
         else:
             raise ValueError("findmag: wrong keyword arguments")
 
@@ -321,7 +348,7 @@ class ETC_DECam(object):
 if __name__ == "__main__":
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hts:e:o:b:t:m:a:f:M:A:S", ["help", "test", "seeing=", "ETC=", "skymode=", "band=", "exptime=", "mag=", "airmass=", "fwhm=", "skymag=", "skyADU=", "SNR="])
+        opts, args = getopt.getopt(sys.argv[1:], "hts:e:o:b:t:n:m:a:f:M:A:S", ["help", "test", "seeing=", "ETC=", "skymode=", "band=", "exptime=", "nread=", "mag=", "airmass=", "fwhm=", "skymag=", "skyADU=", "SNR="])
     except getopt.GetoptError:
         print 'python ETC_DECam.py --help'
         sys.exit(1)
@@ -338,16 +365,16 @@ if __name__ == "__main__":
             print """   # import module
    from ETC_DECam import *
 
-   # Initializing ETC_DECam object with seeing_r=of 0.75\", version 6...
-   ETC = ETC_DECam(seeing_r_arcsec=0.75, vETC=6)
+   # Initializing ETC_DECam object with seeing_r=0.75\", version 7...
+   ETC = ETC_DECam(seeing_r_arcsec=0.75, vETC=7)
 
    # Testing FWHM for an airmass vector...
    print "   u band, airmass between 1.0 and 1.6", ETC.FWHM(band='u', airmass=np.linspace(1.0, 1.6, 10))
    print "   g band, airmass between 1.2 and 1.9", ETC.FWHM(band='g', airmass=np.linspace(1.2, 1.9, 10))
 
    # Testing SNR and findmag with all skymodes with a 20 mag source, 173 sec exposure time in g band, airmass of 1.0...
-   print ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='mag', skymag=22)
-   print ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='mag', skymag=22.0)\n\n"""
+   print ETC.SNR(band='g', mag=20, exptime=173, nread=1, airmass=1.0, skymode='mag', skymag=22)
+   print ETC.findmag(band='g', SNRin=SNRtest, exptime=173, nread=1, airmass=1.0, skymode='mag', skymag=22.0)\n\n"""
 
             print "Command line has two basic modes: giving an input magnitude to get an input signal to noise ratio (SNR) and viceversa, i.e. getting a limiting magnitude given a SNR.\n"
             print "Then, the skymode variabla controls how the environmental variables are defined:"
@@ -357,22 +384,22 @@ if __name__ == "__main__":
             print "ADU-FWHM: sky is given in ADU/pixeland FWHM is manually input in arcsec (airmass is also needed to compute extra extinction and atmosphere emission)\n"
             
             print "Command line examples:\n"
-            print """   python ETC_DECam.py --skymode mag --mag 20 --band g --exptime 173 --airmass 1.0 --skymag 22 
+            print """   python ETC_DECam.py --skymode mag --mag 20 --band g --exptime 173 --nread 1 --airmass 1.0 --skymag 22 
    SNR(mag=20.000000): 248.947527
-   python ETC_DECam.py --skymode ADU --mag 20 --band g --exptime 173 --airmass 1.0 --skyADU 200 
+   python ETC_DECam.py --skymode ADU --mag 20 --band g --exptime 173 --nread 1 --airmass 1.0 --skyADU 200 
    SNR(mag=20.000000): 259.685555
-   python ETC_DECam.py --skymode mag-FWHM --mag 20 --band g --exptime 173 --airmass 1.0 --skymag 22 --fwhm 2
+   python ETC_DECam.py --skymode mag-FWHM --mag 20 --band g --exptime 173 --nread 1 --airmass 1.0 --skymag 22 --fwhm 2
    SNR(mag=20.000000): 175.916219
-   python ETC_DECam.py --skymode ADU-FWHM --mag 20 --band g --exptime 173 --airmass 1.0 --skyADU 200 --fwhm 2
+   python ETC_DECam.py --skymode ADU-FWHM --mag 20 --band g --exptime 173 --nread 1 --airmass 1.0 --skyADU 200 --fwhm 2
    SNR(mag=20.000000): 191.589959
    
-   python ETC_DECam.py --skymode mag --SNR 5 --band g --exptime 173 --airmass 1.0 --skymag 22 
+   python ETC_DECam.py --skymode mag --SNR 5 --band g --exptime 173 --nread 1 --airmass 1.0 --skymag 22 
    Magnitude(SNR=5.000000): 24.803138
-   python ETC_DECam.py --skymode ADU --SNR 5 --band g --exptime 173 --airmass 1.0 --skyADU 200 
+   python ETC_DECam.py --skymode ADU --SNR 5 --band g --exptime 173 --nread 1 --airmass 1.0 --skyADU 200 
    Magnitude(SNR=5.000000): 24.945099
-   python ETC_DECam.py --skymode mag-FWHM --SNR 5 --band g --exptime 173 --airmass 1.0 --skymag 22 --fwhm 2
+   python ETC_DECam.py --skymode mag-FWHM --SNR 5 --band g --exptime 173 --nread 1 --airmass 1.0 --skymag 22 --fwhm 2
    Magnitude(SNR=5.000000): 24.073411
-   python ETC_DECam.py --skymode ADU-FWHM --SNR 5 --band g --exptime 173 --airmass 1.0 --skyADU 200 --fwhm 2
+   python ETC_DECam.py --skymode ADU-FWHM --SNR 5 --band g --exptime 173 --nread 1 --airmass 1.0 --skyADU 200 --fwhm 2
    Magnitude(SNR=5.000000): 24.216212"""
             print "\n\n\n"
             
@@ -381,51 +408,58 @@ if __name__ == "__main__":
 
         elif opt in ('-t', '--test'):
 
-            print "\nInitializing ETC_DECam object with seeing_r=of 0.75\", version 6..."
+            print "\nInitializing ETC_DECam object with seeing_r=of 0.75\", version 7..."
             
-            ETC = ETC_DECam(seeing_r_arcsec=0.75, vETC=6)
+            ETC = ETC_DECam(seeing_r_arcsec=0.75, vETC=7)
             
             print "\nTesting FWHM for an airmass vector..."
             print "   u band, airmass between 1.0 and 1.6", ETC.FWHM(band='u', airmass=np.linspace(1.0, 1.6, 10))
             print "   g band, airmass between 1.2 and 1.9", ETC.FWHM(band='g', airmass=np.linspace(1.2, 1.9, 10))
+            print "   r band, airmass between 1.2 and 1.9", ETC.FWHM(band='r', airmass=np.linspace(1.2, 1.9, 10))
+            print "   i band, airmass between 1.2 and 1.9", ETC.FWHM(band='i', airmass=np.linspace(1.2, 1.9, 10))
+            print "   z band, airmass between 1.2 and 1.9", ETC.FWHM(band='z', airmass=np.linspace(1.2, 1.9, 10))
+            print "   Y band, airmass between 1.2 and 1.9", ETC.FWHM(band='Y', airmass=np.linspace(1.2, 1.9, 10))
             
             print "\nTesting SNR and findmag with all skymodes with a 20 mag source, 173 sec exposure time in g band, airmass of 1.0..."
-            SNRtest = ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='mag', skymag=22)
-            magtest = ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='mag', skymag=22.0)
+            SNRtest = ETC.SNR(band='g', mag=20, exptime=173, nread=1, airmass=1.0, skymode='mag', skymag=22)
+            magtest = ETC.findmag(band='g', SNRin=SNRtest, exptime=173, nread=1, airmass=1.0, skymode='mag', skymag=22.0)
             print "   mag (skymag=22): SNR %f <-> mag %f" % (SNRtest, magtest)
             if np.abs(20. - magtest) > 1e-4:
                 print "   mag not OK"
             else:
                 print "   OK"
-            SNRtest = ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='mag-FWHM', skymag=22, fwhm=1.0)
-            magtest = ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='mag-FWHM', skymag=22, fwhm=1.0)
+            SNRtest = ETC.SNR(band='g', mag=20, exptime=173, nread=1, airmass=1.0, skymode='mag-FWHM', skymag=22, fwhm=1.0)
+            magtest = ETC.findmag(band='g', SNRin=SNRtest, exptime=173, nread=1, airmass=1.0, skymode='mag-FWHM', skymag=22, fwhm=1.0)
             print "   mag-FWHM (skymag=22, fwhm=1): SNR %f <-> mag %f"  % (SNRtest, magtest)
             if np.abs(20. - magtest) > 1e-4:
                 print "   mag-FWHM not OK"
             else:
                 print "   OK"
-            SNRtest = ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='ADU', skyADU=120)
-            magtest = ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='ADU', skyADU=120)
+            SNRtest = ETC.SNR(band='g', mag=20, exptime=173, nread=1, airmass=1.0, skymode='ADU', skyADU=120)
+            magtest = ETC.findmag(band='g', SNRin=SNRtest, exptime=173, nread=1, airmass=1.0, skymode='ADU', skyADU=120)
             print "   ADU (skyADU=120): SNR %f <-> mag %f" % (SNRtest, magtest)
             if np.abs(20. - magtest) > 1e-4:
                 print "   ADU not OK"
             else:
                 print "   OK"
-            SNRtest = ETC.SNR(band='g', mag=20, exptime=173, airmass=1.0, skymode='ADU-FWHM', skyADU=120, fwhm=1.0)
-            magtest = ETC.findmag(band='g', SNRin=SNRtest, exptime=173, airmass=1.0, skymode='ADU-FWHM', skyADU=120, fwhm=1.0)
+            SNRtest = ETC.SNR(band='g', mag=20, exptime=173, nread=1, airmass=1.0, skymode='ADU-FWHM', skyADU=120, fwhm=1.0)
+            magtest = ETC.findmag(band='g', SNRin=SNRtest, exptime=173, nread=1, airmass=1.0, skymode='ADU-FWHM', skyADU=120, fwhm=1.0)
             print "   ADU-FHWM (skyADU=120, fwhm=1): SNR %f <-> mag %f" % (SNRtest, magtest)
             if np.abs(20. - magtest) > 1e-4:
                 print "   ADU-FWHM not OK"
             else:
                 print "   OK"
 
-            print "\nTesting findmag for input SNR of 5..."
-            print "   u band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='u', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
-            print "   g band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='g', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
-            print "   r band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='r', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
-            print "   i band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='i', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
-            print "   z band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='z', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
-            print "   Y band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='Y', SNRin=5, exptime=173, airmass=x, skymode='mag', skymag=22.0), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+            print "\nTesting findmag for input SNR of 5 and exposure time of 173 sec, assuming sky magnitudes of 22.8, 22.1, 21.1, 20.1, 18.7 and 18 in ugrizY..."
+            print "   u band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='u', SNRin=5, exptime=173, nread=1, airmass=x, skymode='mag', skymag=22.8), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+            print "   g band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='g', SNRin=5, exptime=173, nread=1, airmass=x, skymode='mag', skymag=22.1), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+            print "   r band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='r', SNRin=5, exptime=173, nread=1, airmass=x, skymode='mag', skymag=21.1), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+            print "   i band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='i', SNRin=5, exptime=173, nread=1, airmass=x, skymode='mag', skymag=20.1), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+            print "   z band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='z', SNRin=5, exptime=173, nread=1, airmass=x, skymode='mag', skymag=18.7), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+            print "   Y band, mags at airmasses of 1.0, 1.2, 1.4, 1.6, 1.8, 2.0", map(lambda x: ETC.findmag(band='Y', SNRin=5, exptime=173, nread=1, airmass=x, skymode='mag', skymag=18), [1., 1.2, 1.4, 1.6, 1.8, 2.0])
+
+            print "\n\n\n\n"
+            sys.exit()
             
 
         elif opt in ('-s', '--seeing'):
@@ -438,6 +472,8 @@ if __name__ == "__main__":
             band = arg
         elif opt in ('-t', '--exptime'):
             exptime = float(arg)
+        elif opt in ('-n', '--nread'):
+            nread = float(arg)
         elif opt in ('-m', '--mag'):
             mag = float(arg)
         elif opt in ('a', '--airmass'):
@@ -466,24 +502,24 @@ if __name__ == "__main__":
         if 'SNR' in locals():
 
             if skymode == 'mag':
-                print "Magnitude(SNR=%f): %f" % (SNR, ETC.findmag(band=band, SNRin=SNR, exptime=exptime, airmass=airmass, skymode='mag', skymag=skymag))
+                print "Magnitude(SNR=%f): %f" % (SNR, ETC.findmag(band=band, SNRin=SNR, exptime=exptime, nread=nread, airmass=airmass, skymode='mag', skymag=skymag))
             elif skymode == 'mag-FWHM':
-                print "Magnitude(SNR=%f): %f" % (SNR, ETC.findmag(band=band, SNRin=SNR, exptime=exptime, airmass=airmass, skymode='mag-FWHM', skymag=skymag, fwhm=fwhm))
+                print "Magnitude(SNR=%f): %f" % (SNR, ETC.findmag(band=band, SNRin=SNR, exptime=exptime, nread=nread, airmass=airmass, skymode='mag-FWHM', skymag=skymag, fwhm=fwhm))
             elif skymode == 'ADU':
-                print "Magnitude(SNR=%f): %f" % (SNR, ETC.findmag(band=band, SNRin=SNR, exptime=exptime, airmass=airmass, skymode='ADU', skyADU=skyADU))
+                print "Magnitude(SNR=%f): %f" % (SNR, ETC.findmag(band=band, SNRin=SNR, exptime=exptime, nread=nread, airmass=airmass, skymode='ADU', skyADU=skyADU))
             elif skymode == 'ADU-FWHM':
-                print "Magnitude(SNR=%f): %f" % (SNR, ETC.findmag(band=band, SNRin=SNR, exptime=exptime, airmass=airmass, skymode='ADU-FWHM', skyADU=skyADU, fwhm=fwhm))
+                print "Magnitude(SNR=%f): %f" % (SNR, ETC.findmag(band=band, SNRin=SNR, exptime=exptime, nread=nread, airmass=airmass, skymode='ADU-FWHM', skyADU=skyADU, fwhm=fwhm))
         
         else:
             
             if skymode == 'mag':
-                print "SNR(mag=%f): %f" % (mag, ETC.SNR(band=band, mag=mag, exptime=exptime, airmass=airmass, skymode='mag', skymag=skymag))
+                print "SNR(mag=%f): %f" % (mag, ETC.SNR(band=band, mag=mag, exptime=exptime, nread=nread, airmass=airmass, skymode='mag', skymag=skymag))
             elif skymode == 'mag-FWHM':
-                print "SNR(mag=%f): %f" % (mag, ETC.SNR(band=band, mag=mag, exptime=exptime, airmass=airmass, skymode='mag-FWHM', skymag=skymag, fwhm=fwhm))
+                print "SNR(mag=%f): %f" % (mag, ETC.SNR(band=band, mag=mag, exptime=exptime, nread=nread, airmass=airmass, skymode='mag-FWHM', skymag=skymag, fwhm=fwhm))
             elif skymode == 'ADU':
-                print "SNR(mag=%f): %f" % (mag, ETC.SNR(band=band, mag=mag, exptime=exptime, airmass=airmass, skymode='ADU', skyADU=skyADU))
+                print "SNR(mag=%f): %f" % (mag, ETC.SNR(band=band, mag=mag, exptime=exptime, nread=nread, airmass=airmass, skymode='ADU', skyADU=skyADU))
             elif skymode == 'ADU-FWHM':
-                print "SNR(mag=%f): %f" % (mag, ETC.SNR(band=band, mag=mag, exptime=exptime, airmass=airmass, skymode='ADU-FWHM', skyADU=skyADU, fwhm=fwhm))
+                print "SNR(mag=%f): %f" % (mag, ETC.SNR(band=band, mag=mag, exptime=exptime, nread=nread, airmass=airmass, skymode='ADU-FWHM', skyADU=skyADU, fwhm=fwhm))
 
     else:
         
